@@ -15,3 +15,10 @@ wcprob tui
 ## Data Sources
 
 API sources should be preferred for probabilities. Scrapers are used for annotations and fallback health signals because public page layouts change often.
+
+## Environment Variables
+
+- `WCPROB_DATABASE`: SQLite database path. Defaults to `wcprob.sqlite`.
+- `WCPROB_REFRESH_SECONDS`: TUI refresh cadence. Defaults to `900`.
+- `WCPROB_ODDS_API_URL`: Odds API endpoint for outright winner markets.
+- `WCPROB_MARKET_URL`: Prediction-market endpoint returning country probabilities.
