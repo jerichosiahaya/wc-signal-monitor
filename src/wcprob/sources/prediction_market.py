@@ -12,6 +12,9 @@ class PredictionMarketSource:
         response = httpx.get(self.url, timeout=20)
         response.raise_for_status()
         payload = response.json()
+        markets = payload.get("markets")
+        if not isinstance(markets, list) or not markets:
+            raise ValueError("prediction market payload has no markets")
 
         return [
             SourceObservation(
@@ -21,5 +24,5 @@ class PredictionMarketSource:
                 raw_value=str(row["probability"]),
                 implied_probability=float(row["probability"]),
             )
-            for row in payload.get("markets", [])
+            for row in markets
         ]
