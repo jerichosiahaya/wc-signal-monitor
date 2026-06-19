@@ -1,3 +1,4 @@
+from contextlib import closing
 import sqlite3
 from pathlib import Path
 
@@ -14,57 +15,73 @@ class Storage:
         return conn
 
     def init_schema(self) -> None:
-        with self.connect() as conn:
-            conn.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS observations (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    source TEXT NOT NULL,
-                    source_kind TEXT NOT NULL,
-                    country TEXT NOT NULL,
-                    raw_value TEXT NOT NULL,
-                    implied_probability REAL NOT NULL,
-                    captured_at TEXT NOT NULL
-                );
+        with closing(self.connect()) as conn:
+            with conn:
+                conn.executescript(
+                    """
+                    CREATE TABLE IF NOT EXISTS observations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        source TEXT NOT NULL,
+                        source_kind TEXT NOT NULL,
+                        country TEXT NOT NULL,
+                        raw_value TEXT NOT NULL,
+                        implied_probability REAL NOT NULL,
+                        captured_at TEXT NOT NULL
+                    );
 
-                CREATE TABLE IF NOT EXISTS source_health (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    source TEXT NOT NULL,
-                    ok INTEGER NOT NULL,
-                    message TEXT NOT NULL,
-                    checked_at TEXT NOT NULL
-                );
-                """
-            )
+                    CREATE TABLE IF NOT EXISTS source_health (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        source TEXT NOT NULL,
+                        ok INTEGER NOT NULL,
+                        message TEXT NOT NULL,
+                        checked_at TEXT NOT NULL
+                    );
+                    """
+                )
 
     def insert_observations(self, observations: list[SourceObservation]) -> None:
-        with self.connect() as conn:
-            conn.executemany(
-                """
-                INSERT INTO observations
-                (source, source_kind, country, raw_value, implied_probability, captured_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                [
-                    (
-                        row.source,
-                        row.source_kind.value,
-                        row.country,
-                        row.raw_value,
-                        row.implied_probability,
-                        row.captured_at.isoformat(),
-                    )
-                    for row in observations
-                ],
-            )
+        with closing(self.connect()) as conn:
+            with conn:
+                conn.executemany(
+                    """
+                    INSERT INTO observations
+                    (source, source_kind, country, raw_value, implied_probability, captured_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    [
+                        (
+                            row.source,
+                            row.source_kind.value,
+                            row.country,
+                            row.raw_value,
+                            row.implied_probability,
+                            row.captured_at.isoformat(),
+                        )
+                        for row in observations
+                    ],
+                )
 
     def latest_observations(self) -> list[SourceObservation]:
-        with self.connect() as conn:
+        with closing(self.connect()) as conn:
             rows = conn.execute(
                 """
-                SELECT source, source_kind, country, raw_value, implied_probability, captured_at
+                SELECT
+                    observations.source,
+                    observations.source_kind,
+                    observations.country,
+                    observations.raw_value,
+                    observations.implied_probability,
+                    observations.captured_at
                 FROM observations
-                ORDER BY captured_at DESC
+                INNER JOIN (
+                    SELECT source, country, MAX(captured_at) AS captured_at
+                    FROM observations
+                    GROUP BY source, country
+                ) latest
+                    ON observations.source = latest.source
+                    AND observations.country = latest.country
+                    AND observations.captured_at = latest.captured_at
+                ORDER BY observations.captured_at DESC
                 """
             ).fetchall()
         return [
@@ -80,22 +97,39 @@ class Storage:
         ]
 
     def insert_health(self, health: SourceHealth) -> None:
-        with self.connect() as conn:
-            conn.execute(
-                """
-                INSERT INTO source_health (source, ok, message, checked_at)
-                VALUES (?, ?, ?, ?)
-                """,
-                (health.source, int(health.ok), health.message, health.checked_at.isoformat()),
-            )
+        with closing(self.connect()) as conn:
+            with conn:
+                conn.execute(
+                    """
+                    INSERT INTO source_health (source, ok, message, checked_at)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (
+                        health.source,
+                        int(health.ok),
+                        health.message,
+                        health.checked_at.isoformat(),
+                    ),
+                )
 
     def latest_health(self) -> list[SourceHealth]:
-        with self.connect() as conn:
+        with closing(self.connect()) as conn:
             rows = conn.execute(
                 """
-                SELECT source, ok, message, checked_at
+                SELECT
+                    source_health.source,
+                    source_health.ok,
+                    source_health.message,
+                    source_health.checked_at
                 FROM source_health
-                ORDER BY checked_at DESC
+                INNER JOIN (
+                    SELECT source, MAX(checked_at) AS checked_at
+                    FROM source_health
+                    GROUP BY source
+                ) latest
+                    ON source_health.source = latest.source
+                    AND source_health.checked_at = latest.checked_at
+                ORDER BY source_health.checked_at DESC
                 """
             ).fetchall()
         return [
