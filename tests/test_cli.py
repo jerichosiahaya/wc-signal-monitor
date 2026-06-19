@@ -43,3 +43,25 @@ def test_init_db_command_initializes_configured_database(tmp_path, monkeypatch, 
 
     assert db_path.exists()
     assert f"initialized {db_path}" in capsys.readouterr().out
+
+
+def test_tui_command_uses_configured_refresh_seconds(tmp_path, monkeypatch):
+    import wcprob.tui
+
+    db_path = tmp_path / "wcprob.sqlite"
+    run_args = {}
+
+    def fake_run_tui(storage, refresh_seconds):
+        run_args["storage"] = storage
+        run_args["refresh_seconds"] = refresh_seconds
+
+    monkeypatch.setattr(
+        "wcprob.cli.Settings",
+        lambda: Settings(database_path=db_path, refresh_seconds=17),
+    )
+    monkeypatch.setattr(wcprob.tui, "run_tui", fake_run_tui)
+
+    main(["tui"])
+
+    assert run_args["storage"].db_path == db_path
+    assert run_args["refresh_seconds"] == 17

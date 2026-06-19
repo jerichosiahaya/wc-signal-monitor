@@ -51,4 +51,4 @@ def main(argv: list[str] | None = None) -> None:
         from wcprob.tui import run_tui
 
         storage.init_schema()
-        run_tui(storage)
+        run_tui(storage, refresh_seconds=settings.refresh_seconds)
