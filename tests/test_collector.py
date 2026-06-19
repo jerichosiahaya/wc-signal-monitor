@@ -34,6 +34,11 @@ def test_collector_persists_success_and_failure_health(tmp_path):
 
     observations = storage.latest_observations()
     health = storage.latest_health()
+    health_by_source = {row.source: row for row in health}
 
+    assert len(observations) == 1
     assert observations[0].country == "France"
-    assert {row.source: row.ok for row in health} == {"good": True, "bad": False}
+    assert health_by_source["good"].ok is True
+    assert health_by_source["good"].message == "stored 1 observations"
+    assert health_by_source["bad"].ok is False
+    assert health_by_source["bad"].message == "network failed"

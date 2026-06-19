@@ -19,4 +19,10 @@ class Collector:
                 continue
 
             self.storage.insert_observations(observations)
-            self.storage.insert_health(SourceHealth(source=source.name, ok=True, message="ok"))
+            self.storage.insert_health(
+                SourceHealth(
+                    source=source.name,
+                    ok=True,
+                    message=f"stored {len(observations)} observations",
+                )
+            )
