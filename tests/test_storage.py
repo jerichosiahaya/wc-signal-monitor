@@ -97,3 +97,34 @@ def test_insert_source_health(tmp_path):
     assert by_source["other"].ok is True
     assert by_source["other"].message == "ok"
     assert by_source["other"].checked_at.tzinfo == timezone.utc
+
+
+def test_observation_history_returns_all_rows_newest_first(tmp_path):
+    db_path = tmp_path / "wcprob.sqlite"
+    storage = Storage(db_path)
+    storage.init_schema()
+
+    storage.insert_observations(
+        [
+            SourceObservation(
+                source="old",
+                source_kind=SourceKind.ODDS_API,
+                country="France",
+                raw_value="0.1",
+                implied_probability=0.1,
+                captured_at=datetime(2026, 6, 19, 1, tzinfo=timezone.utc),
+            ),
+            SourceObservation(
+                source="new",
+                source_kind=SourceKind.ODDS_API,
+                country="France",
+                raw_value="0.2",
+                implied_probability=0.2,
+                captured_at=datetime(2026, 6, 19, 2, tzinfo=timezone.utc),
+            ),
+        ]
+    )
+
+    rows = storage.observation_history()
+
+    assert [row.source for row in rows] == ["new", "old"]

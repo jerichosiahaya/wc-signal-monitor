@@ -34,6 +34,8 @@ def test_url_settings_read_env_when_settings_is_instantiated(monkeypatch):
     monkeypatch.setenv("WCPROB_POLYMARKET_URL", "https://poly.example.test")
     monkeypatch.setenv("WCPROB_KALSHI_ENABLED", "false")
     monkeypatch.setenv("WCPROB_KALSHI_URL", "https://kalshi.example.test")
+    monkeypatch.setenv("WCPROB_NEWS_ENABLED", "false")
+    monkeypatch.setenv("WCPROB_NEWS_URL", "https://news.example.test/rss")
 
     settings = Settings()
 
@@ -45,6 +47,8 @@ def test_url_settings_read_env_when_settings_is_instantiated(monkeypatch):
     assert settings.polymarket_url == "https://poly.example.test"
     assert settings.kalshi_enabled is False
     assert settings.kalshi_url == "https://kalshi.example.test"
+    assert settings.news_enabled is False
+    assert settings.news_url == "https://news.example.test/rss"
 
 
 def test_kalshi_is_disabled_without_specific_url():

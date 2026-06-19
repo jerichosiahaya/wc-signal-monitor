@@ -96,6 +96,29 @@ class Storage:
             for row in rows
         ]
 
+    def observation_history(self, limit: int = 500) -> list[SourceObservation]:
+        with closing(self.connect()) as conn:
+            rows = conn.execute(
+                """
+                SELECT source, source_kind, country, raw_value, implied_probability, captured_at
+                FROM observations
+                ORDER BY captured_at DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+        return [
+            SourceObservation(
+                source=row["source"],
+                source_kind=SourceKind(row["source_kind"]),
+                country=row["country"],
+                raw_value=row["raw_value"],
+                implied_probability=row["implied_probability"],
+                captured_at=row["captured_at"],
+            )
+            for row in rows
+        ]
+
     def insert_health(self, health: SourceHealth) -> None:
         with closing(self.connect()) as conn:
             with conn:

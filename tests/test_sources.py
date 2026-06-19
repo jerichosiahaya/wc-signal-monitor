@@ -8,6 +8,7 @@ from wcprob.sources.prediction_market import (
     PolymarketGammaSource,
     PredictionMarketSource,
 )
+from wcprob.sources.news import NewsSignalSource
 
 
 @respx.mock
@@ -190,3 +191,28 @@ def test_kalshi_source_reads_winner_markets():
 
     assert observations[0].country == "France"
     assert observations[0].implied_probability == 0.21
+
+
+@respx.mock
+def test_news_signal_source_counts_country_mentions_from_rss():
+    respx.get("https://example.test/news.xml").mock(
+        return_value=httpx.Response(
+            200,
+            text="""<?xml version="1.0"?>
+            <rss><channel>
+              <item><title>France and Spain lead World Cup winner odds</title></item>
+              <item><title>France squad news boosts confidence</title></item>
+            </channel></rss>""",
+        )
+    )
+
+    source = NewsSignalSource(
+        name="news",
+        url="https://example.test/news.xml",
+        countries={"France", "Spain"},
+    )
+    observations = source.fetch()
+
+    assert [row.country for row in observations] == ["France", "Spain"]
+    assert observations[0].source_kind.value == "news_scraper"
+    assert observations[0].implied_probability == 2 / 3

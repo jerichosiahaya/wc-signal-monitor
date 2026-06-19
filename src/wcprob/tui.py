@@ -3,7 +3,7 @@ from textual.app import App, ComposeResult
 from textual.widgets import DataTable, Footer, Header, Static
 
 from wcprob.consensus import build_consensus
-from wcprob.models import SourceHealth
+from wcprob.models import SourceHealth, SourceObservation
 from wcprob.storage import Storage
 
 
@@ -22,6 +22,36 @@ def format_source_health(health: list[SourceHealth]) -> str:
         else:
             statuses.append(f"{row.source} failed: {row.message}")
     return f"Sources: {'; '.join(statuses)}"
+
+
+def sparkline(values: list[float]) -> str:
+    bars = "▁▂▃▄▅▆▇█"
+    if not values:
+        return ""
+    if len(values) == 1:
+        return bars[-1]
+    minimum = min(values)
+    maximum = max(values)
+    if minimum == maximum:
+        return bars[0] * len(values)
+    scale = len(bars) - 1
+    return "".join(
+        bars[round((value - minimum) / (maximum - minimum) * scale)]
+        for value in values
+    )
+
+
+def country_history(
+    observations: list[SourceObservation],
+    country: str,
+    limit: int = 12,
+) -> list[float]:
+    values = [
+        row.implied_probability
+        for row in sorted(observations, key=lambda row: row.captured_at)
+        if row.country == country
+    ]
+    return values[-limit:]
 
 
 class ProbabilityApp(App):
@@ -54,13 +84,15 @@ class ProbabilityApp(App):
     def refresh_table(self) -> None:
         table = self.query_one("#rankings", DataTable)
         table.clear()
-        consensus = build_consensus(self.storage.latest_observations())
+        latest = self.storage.latest_observations()
+        history = self.storage.observation_history()
+        consensus = build_consensus(latest)
         for index, row in enumerate(consensus[:12], start=1):
             table.add_row(
                 str(index),
                 row.country,
                 format_probability(row.probability),
-                str(row.source_count),
+                f"{row.source_count} {sparkline(country_history(history, row.country))}",
             )
         self.query_one("#source-health", Static).update(
             format_source_health(self.storage.latest_health())
@@ -74,13 +106,15 @@ def build_rich_table(storage: Storage) -> Table:
     table.add_column("Consensus")
     table.add_column("Sources")
 
-    consensus = build_consensus(storage.latest_observations())
+    latest = storage.latest_observations()
+    history = storage.observation_history()
+    consensus = build_consensus(latest)
     for index, row in enumerate(consensus[:12], start=1):
         table.add_row(
             str(index),
             row.country,
             format_probability(row.probability),
-            str(row.source_count),
+            f"{row.source_count} {sparkline(country_history(history, row.country))}",
         )
 
     return table

@@ -3,6 +3,7 @@ import argparse
 from wcprob.collector import Collector
 from wcprob.config import Settings
 from wcprob.sources.base import ProbabilitySource
+from wcprob.sources.news import NewsSignalSource
 from wcprob.sources.odds_api import OddsApiSource, build_the_odds_api_url
 from wcprob.sources.prediction_market import (
     KalshiMarketSource,
@@ -37,6 +38,8 @@ def build_sources(settings: Settings) -> list[ProbabilitySource]:
         sources.append(PolymarketGammaSource(name="polymarket", url=settings.polymarket_url))
     if settings.kalshi_enabled and settings.kalshi_url:
         sources.append(KalshiMarketSource(name="kalshi", url=settings.kalshi_url))
+    if settings.news_enabled:
+        sources.append(NewsSignalSource(name="news", url=settings.news_url))
     return sources
 
 

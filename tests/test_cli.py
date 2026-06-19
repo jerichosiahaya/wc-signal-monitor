@@ -2,6 +2,7 @@ import pytest
 
 from wcprob.cli import build_sources, main
 from wcprob.config import Settings
+from wcprob.sources.news import NewsSignalSource
 from wcprob.sources.odds_api import OddsApiSource
 from wcprob.sources.prediction_market import (
     KalshiMarketSource,
@@ -25,6 +26,7 @@ def test_build_sources_uses_configured_urls(tmp_path):
         prediction_market_url="https://example.test/markets",
         polymarket_enabled=False,
         kalshi_enabled=False,
+        news_enabled=False,
     )
 
     sources = build_sources(settings)
@@ -46,11 +48,12 @@ def test_build_sources_adds_builtin_providers(tmp_path):
         polymarket_url="https://example.test/polymarket",
         kalshi_enabled=True,
         kalshi_url="https://example.test/kalshi",
+        news_url="https://example.test/news.xml",
     )
 
     sources = build_sources(settings)
 
-    assert len(sources) == 3
+    assert len(sources) == 4
     assert isinstance(sources[0], OddsApiSource)
     assert sources[0].name == "the-odds-api"
     assert "apiKey=odds-key" in sources[0].url
@@ -59,6 +62,8 @@ def test_build_sources_adds_builtin_providers(tmp_path):
     assert sources[1].url == "https://example.test/polymarket"
     assert isinstance(sources[2], KalshiMarketSource)
     assert sources[2].url == "https://example.test/kalshi"
+    assert isinstance(sources[3], NewsSignalSource)
+    assert sources[3].url == "https://example.test/news.xml"
 
 
 def test_build_sources_skips_kalshi_without_specific_url(tmp_path):
@@ -67,6 +72,7 @@ def test_build_sources_skips_kalshi_without_specific_url(tmp_path):
         polymarket_enabled=False,
         kalshi_enabled=True,
         kalshi_url=None,
+        news_enabled=False,
     )
 
     assert build_sources(settings) == []

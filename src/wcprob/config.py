@@ -43,3 +43,12 @@ class Settings(BaseModel):
         default_factory=lambda: _env_bool("WCPROB_KALSHI_ENABLED", False)
     )
     kalshi_url: str | None = Field(default_factory=lambda: os.getenv("WCPROB_KALSHI_URL"))
+    news_enabled: bool = Field(
+        default_factory=lambda: _env_bool("WCPROB_NEWS_ENABLED", True)
+    )
+    news_url: str = Field(
+        default_factory=lambda: os.getenv(
+            "WCPROB_NEWS_URL",
+            "https://news.google.com/rss/search?q=World%20Cup%202026%20winner",
+        )
+    )
