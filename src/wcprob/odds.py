@@ -13,6 +13,10 @@ def american_to_probability(american_odds: int) -> float:
 
 
 def remove_overround(probabilities: dict[str, float]) -> dict[str, float]:
+    for probability in probabilities.values():
+        if probability < 0 or probability > 1:
+            raise ValueError("probabilities must be between 0 and 1")
+
     total = sum(probabilities.values())
     if total <= 0:
         raise ValueError("probability total must be positive")
