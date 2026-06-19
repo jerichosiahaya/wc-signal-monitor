@@ -28,8 +28,27 @@ def test_refresh_seconds_reads_env_when_settings_is_instantiated(monkeypatch):
 def test_url_settings_read_env_when_settings_is_instantiated(monkeypatch):
     monkeypatch.setenv("WCPROB_ODDS_API_URL", "https://odds.example.test")
     monkeypatch.setenv("WCPROB_MARKET_URL", "https://markets.example.test")
+    monkeypatch.setenv("WCPROB_ODDS_API_KEY", "odds-key")
+    monkeypatch.setenv("WCPROB_ODDS_API_REGIONS", "eu")
+    monkeypatch.setenv("WCPROB_POLYMARKET_ENABLED", "false")
+    monkeypatch.setenv("WCPROB_POLYMARKET_URL", "https://poly.example.test")
+    monkeypatch.setenv("WCPROB_KALSHI_ENABLED", "false")
+    monkeypatch.setenv("WCPROB_KALSHI_URL", "https://kalshi.example.test")
 
     settings = Settings()
 
     assert settings.odds_api_url == "https://odds.example.test"
     assert settings.prediction_market_url == "https://markets.example.test"
+    assert settings.odds_api_key == "odds-key"
+    assert settings.odds_api_regions == "eu"
+    assert settings.polymarket_enabled is False
+    assert settings.polymarket_url == "https://poly.example.test"
+    assert settings.kalshi_enabled is False
+    assert settings.kalshi_url == "https://kalshi.example.test"
+
+
+def test_kalshi_is_disabled_without_specific_url():
+    settings = Settings()
+
+    assert settings.kalshi_enabled is False
+    assert settings.kalshi_url is None

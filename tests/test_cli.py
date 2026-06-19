@@ -3,7 +3,11 @@ import pytest
 from wcprob.cli import build_sources, main
 from wcprob.config import Settings
 from wcprob.sources.odds_api import OddsApiSource
-from wcprob.sources.prediction_market import PredictionMarketSource
+from wcprob.sources.prediction_market import (
+    KalshiMarketSource,
+    PolymarketGammaSource,
+    PredictionMarketSource,
+)
 
 
 def test_main_help_exits_successfully(capsys):
@@ -19,6 +23,8 @@ def test_build_sources_uses_configured_urls(tmp_path):
         database_path=tmp_path / "wcprob.sqlite",
         odds_api_url="https://example.test/odds",
         prediction_market_url="https://example.test/markets",
+        polymarket_enabled=False,
+        kalshi_enabled=False,
     )
 
     sources = build_sources(settings)
@@ -30,6 +36,40 @@ def test_build_sources_uses_configured_urls(tmp_path):
     assert isinstance(sources[1], PredictionMarketSource)
     assert sources[1].name == "prediction-market"
     assert sources[1].url == "https://example.test/markets"
+
+
+def test_build_sources_adds_builtin_providers(tmp_path):
+    settings = Settings(
+        database_path=tmp_path / "wcprob.sqlite",
+        odds_api_key="odds-key",
+        odds_api_regions="eu",
+        polymarket_url="https://example.test/polymarket",
+        kalshi_enabled=True,
+        kalshi_url="https://example.test/kalshi",
+    )
+
+    sources = build_sources(settings)
+
+    assert len(sources) == 3
+    assert isinstance(sources[0], OddsApiSource)
+    assert sources[0].name == "the-odds-api"
+    assert "apiKey=odds-key" in sources[0].url
+    assert "regions=eu" in sources[0].url
+    assert isinstance(sources[1], PolymarketGammaSource)
+    assert sources[1].url == "https://example.test/polymarket"
+    assert isinstance(sources[2], KalshiMarketSource)
+    assert sources[2].url == "https://example.test/kalshi"
+
+
+def test_build_sources_skips_kalshi_without_specific_url(tmp_path):
+    settings = Settings(
+        database_path=tmp_path / "wcprob.sqlite",
+        polymarket_enabled=False,
+        kalshi_enabled=True,
+        kalshi_url=None,
+    )
+
+    assert build_sources(settings) == []
 
 
 def test_init_db_command_initializes_configured_database(tmp_path, monkeypatch, capsys):

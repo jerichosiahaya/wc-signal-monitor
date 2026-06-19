@@ -3,8 +3,12 @@ import argparse
 from wcprob.collector import Collector
 from wcprob.config import Settings
 from wcprob.sources.base import ProbabilitySource
-from wcprob.sources.odds_api import OddsApiSource
-from wcprob.sources.prediction_market import PredictionMarketSource
+from wcprob.sources.odds_api import OddsApiSource, build_the_odds_api_url
+from wcprob.sources.prediction_market import (
+    KalshiMarketSource,
+    PolymarketGammaSource,
+    PredictionMarketSource,
+)
 from wcprob.storage import Storage
 
 
@@ -12,6 +16,16 @@ def build_sources(settings: Settings) -> list[ProbabilitySource]:
     sources: list[ProbabilitySource] = []
     if settings.odds_api_url:
         sources.append(OddsApiSource(name="odds-api", url=settings.odds_api_url))
+    elif settings.odds_api_key:
+        sources.append(
+            OddsApiSource(
+                name="the-odds-api",
+                url=build_the_odds_api_url(
+                    api_key=settings.odds_api_key,
+                    regions=settings.odds_api_regions,
+                ),
+            )
+        )
     if settings.prediction_market_url:
         sources.append(
             PredictionMarketSource(
@@ -19,6 +33,10 @@ def build_sources(settings: Settings) -> list[ProbabilitySource]:
                 url=settings.prediction_market_url,
             )
         )
+    if settings.polymarket_enabled:
+        sources.append(PolymarketGammaSource(name="polymarket", url=settings.polymarket_url))
+    if settings.kalshi_enabled and settings.kalshi_url:
+        sources.append(KalshiMarketSource(name="kalshi", url=settings.kalshi_url))
     return sources
 
 
