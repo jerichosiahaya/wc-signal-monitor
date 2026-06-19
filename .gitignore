@@ -2,6 +2,7 @@
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+src/*.egg-info/
 *.pyc
 *.db
 *.sqlite
